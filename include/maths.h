@@ -1,0 +1,307 @@
+#ifndef MATH_H
+#define MATH_H
+
+#include <math.h>
+
+#define FIRST(A ...) A
+#define VA_NUM_ARGS_IMPL(_1,_2,_3,_4,_5,N,...) N
+#define VA_NUM_ARGS(...) VA_NUM_ARGS_IMPL(__VA_ARGS__,5,4,3,2,1)
+
+#define GET_DIM(ARR)(*((size_t *)ARR-1))
+#define GET_WIDTH(ARR)(*((size_t *)ARR-2))
+#define GET_HEIGHT(ARR)(*((size_t *)ARR-3))
+#define GET_DEPTH(ARR)(*((size_t *)ARR-4))
+
+#define HEAP_PARENT(N)(((N)-1)/2)
+#define HEAP_CHILD1(N)(2*(N)+1)
+#define HEAP_CHILD2(N)(2*(N)+2)
+
+#define HEAP_POPON(HEAP,VAL,CONDITION)\
+if(1){\
+  int pos=GET_DIM(HEAP);\
+  HEAP[pos]=VAL;\
+  SET_DIM(HEAP,pos+1);\
+  while(1){\
+    int parent=HEAP_PARENT(pos);\
+    if(pos!=0 && CONDITION(HEAP[pos],HEAP[parent])){\
+      HEAP[pos]=HEAP[parent];\
+      HEAP[parent]=VAL;\
+      pos=parent;\
+    }else break;\
+  }\
+}
+#define HEAP_POPOFF(HEAP,CONDITION)\
+if(GET_DIM(HEAP)>0){\
+  int pos=GET_DIM(HEAP)-1;\
+  HEAP[0]=HEAP[pos];\
+  SET_DIM(HEAP,pos);\
+  pos=0;\
+  while(GET_DIM(HEAP)>pos){\
+    int child1=HEAP_CHILD1(pos);\
+    int child2=HEAP_CHILD2(pos);\
+    if(child1<GET_DIM(HEAP) && (CONDITION(HEAP[child1],HEAP[pos]) || CONDITION(HEAP[child2],HEAP[pos]))){\
+      int temp=HEAP[pos];\
+      if(child2>=GET_DIM(HEAP) || CONDITION(HEAP[child1],HEAP[child2])){\
+        HEAP[pos]=HEAP[child1];\
+        HEAP[child1]=temp;\
+        pos=child1;\
+      }else{\
+        HEAP[pos]=HEAP[child2];\
+        HEAP[child2]=temp;\
+        pos=child2;\
+      }\
+    }else break;\
+  }\
+}
+
+#define VEC2_COMPONENT(V)V.x,V.y
+#define VEC3_COMPONENT(V)V.x,V.y,V.z
+#define VEC4_COMPONENT(V)V.w,V.x,V.y,V.z
+
+#define VEC2_ISZERO(V)V.x==0&&V.y==0
+#define VEC3_ISZERO(V)V.x==0&&V.y==0&&V.z==0
+#define VEC4_ISZERO(V)V.w==0&&V.x==0&&V.y==0&&V.z==0
+
+#define VEC2_EQUAL(A,B)A.x==B.x&&A.y==B.y
+#define VEC3_EQUAL(A,B)A.x==B.x&&A.y==B.y&&A.z==B.z
+#define VEC4_EQUAL(A,B)A.w==B.w&&A.x==B.x&&A.y==B.y&&A.z==B.z
+
+#define VEC2_ZERO (struct Vec2){0,0}
+#define VEC3_ZERO (struct Vec3){0,0,0}
+#define VEC4_ZERO (struct Vec4){0,0,0,0}
+
+#define VEC2_NEW(X,Y)     (struct Vec2){X,Y}
+#define VEC3_NEW(X,Y,Z)   (struct Vec3){X,Y,Z}
+#define VEC4_NEW(W,X,Y,Z) (struct Vec4){W,X,Y,Z}
+
+#define new(...) VA_NUM_ARGS_IMPL(__VA_ARGS__,5,VEC4_NEW,VEC3_NEW,VEC2_NEW)(__VA_ARGS__)
+
+struct Vec2{
+	float x;
+	float y;
+};
+
+struct Vec3{
+	float x;
+	float y;
+	float z;
+};
+
+struct Vec4{
+	float w;
+	float x;
+	float y;
+	float z;
+};
+
+struct Vec2 Vec2_new(float x,float y);
+struct Vec3 Vec3_new(float x,float y,float z);
+struct Vec4 Vec4_new(float w,float x,float y,float z);
+
+struct Vec2 Vec2_norm(struct Vec2 v);
+struct Vec2 Vec2_neg(struct Vec2 v);
+struct Vec2 Vec2_cross(struct Vec2 v);
+struct Vec2 Vec2_ortho2(struct Vec2 a,struct Vec2 b);
+struct Vec2 Vec2_rot(struct Vec2 v,float theata);
+float Vec2_length(struct Vec2 v);
+float Vec2_dot(struct Vec2 a,struct Vec2 b);
+float Vec2_angle(struct Vec2 a,struct Vec2 b);
+float Vec2_det(struct Vec2 a,struct Vec2 b);
+
+struct Vec3 Vec3_norm(struct Vec3 v);
+struct Vec3 Vec3_neg(struct Vec3 v);
+struct Vec3 Vec3_cross(struct Vec3 a,struct Vec3 b);
+struct Vec3 Vec3_ortho2(struct Vec3 a,struct Vec3 b);
+struct Vec3 Vec3_ortho3(struct Vec3 a,struct Vec3 b,struct Vec3 c);
+struct Vec3 Vec3_rot(struct Vec3 a,struct Vec3 b,struct Vec3 c,float theata);
+float Vec3_length(struct Vec3 v);
+float Vec3_dot(struct Vec3 a,struct Vec3 b);
+float Vec3_angle(struct Vec3 a,struct Vec3 b);
+float Vec3_det(struct Vec3 a,struct Vec3 b,struct Vec3 c);
+
+struct Vec4 Vec4_norm(struct Vec4 v);
+struct Vec4 Vec4_neg(struct Vec4 v);
+struct Vec4 Vec4_cross(struct Vec4 a,struct Vec4 b,struct Vec4 c);
+struct Vec4 Vec4_ortho2(struct Vec4 a,struct Vec4 b);
+struct Vec4 Vec4_ortho3(struct Vec4 a,struct Vec4 b,struct Vec4 c);
+struct Vec4 Vec4_ortho4(struct Vec4 a,struct Vec4 b,struct Vec4 c,struct Vec4 d);
+struct Vec4 Vec4_rot(struct Vec4 a,struct Vec4 b,struct Vec4 c,float theata);
+float Vec4_length(struct Vec4 v);
+float Vec4_dot(struct Vec4 a,struct Vec4 b);
+float Vec4_angle(struct Vec4 a,struct Vec4 b);
+float Vec4_det(struct Vec4 a,struct Vec4 b,struct Vec4 c,struct Vec4 d);
+
+#define norm(X) _Generic(\
+  (X),\
+  struct Vec2: Vec2_norm,\
+  struct Vec3: Vec3_norm,\
+  struct Vec4: Vec4_norm\
+)(X)
+#define neg(X) _Generic(\
+  (X),\
+  struct Vec2: Vec2_neg,\
+  struct Vec3: Vec3_neg,\
+  struct Vec4: Vec4_neg\
+)(X)
+#define cross(X,...) _Generic(\
+  (X),\
+  struct Vec2: Vec2_cross,\
+  struct Vec3: Vec3_cross,\
+  struct Vec4: Vec4_cross\
+)(X,__VA_ARGS__)
+#define ortho(X,...) _Generic(\
+  (X),\
+  struct Vec2: Vec2_ortho2,\
+  struct Vec3: VA_NUM_ARGS_IMPL(\
+    __VA_ARGS__,5,4,3,\
+    Vec3_ortho3,Vec3_ortho2\
+  ),\
+  struct Vec4: VA_NUM_ARGS_IMPL(\
+    __VA_ARGS__,5,4,\
+    Vec4_ortho4,Vec4_ortho3,Vec4_ortho2\
+  )\
+)(X,__VA_ARGS__)
+#define rot(X,...) _Generic(\
+  (X),\
+  struct Vec2: Vec2_rot,\
+  struct Vec3: Vec3_rot,\
+  struct Vec4: Vec4_rot\
+)(X,__VA_ARGS__)
+#define len(X) _Generic(\
+  (X),\
+  struct Vec2: Vec2_length,\
+  struct Vec3: Vec3_length,\
+  struct Vec4: Vec4_length\
+)(X)
+#define dot(X,...) _Generic(\
+  (X),\
+  struct Vec2: Vec2_dot,\
+  struct Vec3: Vec3_dot,\
+  struct Vec4: Vec4_dot\
+)(X,__VA_ARGS__)
+#define angle(X,...) _Generic(\
+  (X),\
+  struct Vec2: Vec2_angle,\
+  struct Vec3: Vec3_angle,\
+  struct Vec4: Vec4_angle\
+)(X,__VA_ARGS__)
+#define det(X,...) _Generic(\
+  (X),\
+  struct Vec2: Vec2_det,\
+  struct Vec3: Vec3_det,\
+  struct Vec4: Vec4_det\
+)(X,__VA_ARGS__)
+
+struct Vec2 Vec2_addn(struct Vec2 v,float n);
+struct Vec2 Vec2_addv(struct Vec2 a,struct Vec2 b);
+struct Vec2 Vec2_subn(struct Vec2 v,float n);
+struct Vec2 Vec2_subv(struct Vec2 a,struct Vec2 b);
+struct Vec2 Vec2_muln(struct Vec2 v,float n);
+struct Vec2 Vec2_mulv(struct Vec2 a,struct Vec2 b);
+struct Vec2 Vec2_divn(struct Vec2 v,float n);
+struct Vec2 Vec2_divv(struct Vec2 a,struct Vec2 b);
+
+struct Vec3 Vec3_addn(struct Vec3 v,float n);
+struct Vec3 Vec3_addv(struct Vec3 a,struct Vec3 b);
+struct Vec3 Vec3_subn(struct Vec3 v,float n);
+struct Vec3 Vec3_subv(struct Vec3 a,struct Vec3 b);
+struct Vec3 Vec3_muln(struct Vec3 v,float n);
+struct Vec3 Vec3_mulv(struct Vec3 a,struct Vec3 b);
+struct Vec3 Vec3_divn(struct Vec3 v,float n);
+struct Vec3 Vec3_divv(struct Vec3 a,struct Vec3 b);
+
+struct Vec4 Vec4_addn(struct Vec4 v,float n);
+struct Vec4 Vec4_addv(struct Vec4 a,struct Vec4 b);
+struct Vec4 Vec4_subn(struct Vec4 v,float n);
+struct Vec4 Vec4_subv(struct Vec4 a,struct Vec4 b);
+struct Vec4 Vec4_muln(struct Vec4 v,float n);
+struct Vec4 Vec4_mulv(struct Vec4 a,struct Vec4 b);
+struct Vec4 Vec4_divn(struct Vec4 v,float n);
+struct Vec4 Vec4_divv(struct Vec4 a,struct Vec4 b);
+
+#define add(X,B) _Generic(\
+  (X),\
+  struct Vec2: _Generic(\
+    (B),\
+    float: Vec2_addn,\
+    struct Vec2: Vec2_addv,\
+    default: 0\
+  ),\
+  struct Vec3: _Generic(\
+    (B),\
+    float: Vec3_addn,\
+    struct Vec3: Vec3_addv,\
+    default: 0\
+  ),\
+  struct Vec4: _Generic(\
+    (B),\
+    float: Vec4_addn,\
+    struct Vec4: Vec4_addv,\
+    default: 0\
+  )\
+)(X,B)
+#define sub(X,B) _Generic(\
+  (X),\
+  struct Vec2: _Generic(\
+    (B),\
+    float: Vec2_subn,\
+    struct Vec2: Vec2_subv\
+    default: 0\
+  ),\
+  struct Vec3: _Generic(\
+    (B),\
+    float: Vec3_subn,\
+    struct Vec3: Vec3_subv\
+    default: 0\
+  ),\
+  struct Vec4: _Generic(\
+    (B),\
+    float: Vec4_subn,\
+    struct Vec4: Vec4_subv\
+    default: 0\
+  )\
+)(X,B)
+#define mul(X,B) _Generic(\
+  (X),\
+  struct Vec2: _Generic(\
+    (B),\
+    float: Vec2_muln,\
+    struct Vec2: Vec2_mulv\
+    default: 0\
+  ),\
+  struct Vec3: _Generic(\
+    (B),\
+    float: Vec3_muln,\
+    struct Vec3: Vec3_mulv\
+    default: 0\
+  ),\
+  struct Vec4: _Generic(\
+    (B),\
+    float: Vec4_muln,\
+    struct Vec4: Vec4_mulv\
+    default: 0\
+  )\
+)(X,B)
+#define div(X,B) _Generic(\
+  (X),\
+  struct Vec2: _Generic(\
+    (B),\
+    float: Vec2_divn,\
+    struct Vec2: Vec2_divv\
+    default: 0\
+  ),\
+  struct Vec3: _Generic(\
+    (B),\
+    float: Vec3_divn,\
+    struct Vec3: Vec3_divv\
+    default: 0\
+  ),\
+  struct Vec4: _Generic(\
+    (B),\
+    float: Vec4_divn,\
+    struct Vec4: Vec4_divv\
+    default: 0\
+  )\
+)(X,B)
+
+#endif //MATH_H
