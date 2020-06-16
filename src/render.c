@@ -8,7 +8,7 @@ float deltaTime;
 GLuint triprogram;
 GLuint texprogram;
 
-int Render_init(int num,int(*winit)()){
+int Render_init(char *title,struct Vec2 dim){
   if(SDL_Init(SDL_INIT_VIDEO)<0){
     printf("Failed to init SDL\n");
     return 0;
@@ -20,20 +20,53 @@ int Render_init(int num,int(*winit)()){
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION,3);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION,3);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE,8);
-  size_t *raw=malloc(sizeof(size_t)+num*sizeof(struct Window));
-  raw[0]=num;
-  WINDOWS=(struct Window*)&raw[1];
-  if(!(*winit)())
+
+  WINDOW.window=SDL_CreateWindow(title,SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,dim.x,dim.y,SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+  if(WINDOW.window==NULL){
+    printf("Window could not be created! SDL Error: %s\n",SDL_GetError());
     return 0;
+  }
+  WINDOW.context=SDL_GL_CreateContext(WINDOW.window);
+  if(WINDOW.context==NULL){
+    printf("GLContext could not be created! SDL Error: %s\n",SDL_GetError());
+    SDL_DestroyWindow(WINDOW.window);
+    WINDOW.window=NULL;
+    return 0;
+  }
+  WINDOW.dim=dim;
+  WINDOW.ID=SDL_GetWindowID(WINDOW.window);
+  WINDOW.state=0b110011;
 
   glewExperimental=GL_TRUE;
   if(glewInit()!=GLEW_OK){
     printf("ERR: glewInit\n");
     return 0;
   }
-  for(int i=0;i<GET_DIM(WINDOWS);i++){
-    Window_fbo(&WINDOWS[i]);
+
+  WINDOW.FBO=0;
+  glGenFramebuffers(1,&WINDOW.FBO);
+  glBindFramebuffer(GL_FRAMEBUFFER,WINDOW.FBO);
+
+  //renderedTexture=Load_texture("resources/tex.png");
+  //GLuint texColorBuffer;
+  glGenTextures(1,&WINDOW.Tex);
+  glBindTexture(GL_TEXTURE_2D,WINDOW.Tex);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,1024,768,0,GL_RGB,GL_UNSIGNED_BYTE,NULL);
+  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+  glBindTexture(GL_TEXTURE_2D,0);
+
+  glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,WINDOW.FBO,0);
+
+  GLenum DrawBuffers[1]={GL_COLOR_ATTACHMENT0};
+  glDrawBuffers(1,DrawBuffers);
+
+  if(glCheckFramebufferStatus(GL_FRAMEBUFFER)!=GL_FRAMEBUFFER_COMPLETE){
+    printf("GLFramebuffer could not be created!\n");
+    Render_destroy();
+    return 0;
   }
+
   //Window_fbo(&WINDOWS[0]);
   //Window_fbo(&WINDOWS[1]);
 
@@ -48,58 +81,10 @@ int Render_init(int num,int(*winit)()){
   return 1;
 }
 
-struct Window Window_init(char *title,struct Vec2 dim){
-  struct Window win;
-  win.window=SDL_CreateWindow(title,SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,dim.x,dim.y,SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
-  if(win.window==NULL){
-    printf("Window could not be created! SDL Error: %s\n",SDL_GetError());
-    return win;
-  }
-  win.context=SDL_GL_CreateContext(win.window);
-  if(win.context==NULL){
-    printf("GLContext could not be created! SDL Error: %s\n",SDL_GetError());
-    SDL_DestroyWindow(win.window);
-    win.window=NULL;
-    return win;
-  }
-  win.dim=dim;
-  win.ID=SDL_GetWindowID(win.window);
-  win.state=0b110011;
-
-  return win;
-}
-
-int Window_fbo(struct Window *win){
-  win->FBO=0;
-  glGenFramebuffers(1,&win->FBO);
-  glBindFramebuffer(GL_FRAMEBUFFER,win->FBO);
-
-  //renderedTexture=Load_texture("resources/tex.png");
-  //GLuint texColorBuffer;
-  glGenTextures(1,&win->Tex);
-  glBindTexture(GL_TEXTURE_2D,win->Tex);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,1024,768,0,GL_RGB,GL_UNSIGNED_BYTE,NULL);
-  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-  glBindTexture(GL_TEXTURE_2D,0);
-
-  glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,win->FBO,0);
-
-  GLenum DrawBuffers[1]={GL_COLOR_ATTACHMENT0};
-  glDrawBuffers(1,DrawBuffers);
-
-  if(glCheckFramebufferStatus(GL_FRAMEBUFFER)!=GL_FRAMEBUFFER_COMPLETE){
-    printf("GLFramebuffer could not be created!\n");
-    Render_destroy();
-    return 0;
-  }
-  return 1;
-}
-
-void Window_update(struct Window *win,void(*update)(float)){
-  SDL_GL_MakeCurrent(win->window,win->context);
-  glBindFramebuffer(GL_FRAMEBUFFER,win->FBO);
-  //glBindFramebuffer(GL_FRAMEBUFFER,win->FBO);
+void Render_update(void(*update)(float)){
+  SDL_GL_MakeCurrent(WINDOW.window,WINDOW.context);
+  glBindFramebuffer(GL_FRAMEBUFFER,WINDOW.FBO);
+  //glBindFramebuffer(GL_FRAMEBUFFER,WINDOW.FBO);
   //glViewport(0,0,1024,768);
   glClearColor(0.25,0.05,0.15,1.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -115,10 +100,10 @@ void Window_update(struct Window *win,void(*update)(float)){
     new(1,1)
   };
   glBindFramebuffer(GL_FRAMEBUFFER,0);
-  glViewport(0,0,win->dim.x,win->dim.y);
-  Render_texture(pnts,win->Tex);
+  glViewport(0,0,WINDOW.dim.x,WINDOW.dim.y);
+  Render_texture(pnts,WINDOW.Tex);
 
-  SDL_GL_SwapWindow(win->window);
+  SDL_GL_SwapWindow(WINDOW.window);
   SDL_Delay(10);
 }
 
@@ -239,30 +224,23 @@ void Render_texture(struct Vec2 pnts[2],GLuint texture){
   glDeleteBuffers(1,&VBO);
 }
 
-void Window_destroy(struct Window *win){
-  if(win->context!=NULL){
-    SDL_GL_DeleteContext(win->context);
-    win->context=NULL;
-  }if(win->window!=NULL){
-    SDL_DestroyWindow(win->window);
-    win->window=NULL;
-  }if(win->FBO!=0){
-    glBindFramebuffer(GL_FRAMEBUFFER,0);
-    glDeleteFramebuffers(1,&win->FBO);
-    win->FBO=0;
-  }if(win->Tex!=0){
-    glDeleteTextures(1,&win->Tex);
-    win->Tex=0;
-  }
-}
-
 void Render_destroy(){
-  for(int i=0;i<GET_DIM(WINDOWS);i++){
-    Window_destroy(&WINDOWS[i]);
+  if(WINDOW.context!=NULL){
+    SDL_GL_DeleteContext(WINDOW.context);
+    WINDOW.context=NULL;
+  }if(WINDOW.window!=NULL){
+    SDL_DestroyWindow(WINDOW.window);
+    WINDOW.window=NULL;
+  }if(WINDOW.FBO!=0){
+    glBindFramebuffer(GL_FRAMEBUFFER,0);
+    glDeleteFramebuffers(1,&WINDOW.FBO);
+    WINDOW.FBO=0;
+  }if(WINDOW.Tex!=0){
+    glDeleteTextures(1,&WINDOW.Tex);
+    WINDOW.Tex=0;
   }
   glDeleteProgram(texprogram);
   glDeleteProgram(triprogram);
-  free((size_t*)(WINDOWS)-1);
   IMG_Quit();
   SDL_Quit();
 }

@@ -47,7 +47,7 @@ void temp(){
   //printf("%s\n",TEST);
   SDL_SysWMinfo info;
   SDL_VERSION(&info.version);
-  if(!SDL_GetWindowWMInfo(WINDOWS[0].window,&info)){
+  if(!SDL_GetWindowWMInfo(WINDOW.window,&info)){
     printf("%s\n",SDL_GetError());
     return;
   }
@@ -60,8 +60,8 @@ void temp(){
 
   cl_context_properties properties[]={
     CL_CONTEXT_PLATFORM,(cl_context_properties)platform_id,
-  	CL_GL_CONTEXT_KHR,(cl_context_properties)WINDOWS[0].context,
-  	CL_GLX_DISPLAY_KHR,(cl_context_properties)WINDOWS[0].window,
+  	CL_GL_CONTEXT_KHR,(cl_context_properties)WINDOW.context,
+  	CL_GLX_DISPLAY_KHR,(cl_context_properties)WINDOW.window,
   	0
 	};
   cl_context ctx=clCreateContext(properties,1,&device_id,NULL,NULL,&ret);
@@ -75,7 +75,7 @@ void temp(){
   cl_command_queue queue=clCreateCommandQueue(ctx,device_id,0,&ret);
 
   //Create Image
-	cl_mem image=clCreateFromGLTexture(ctx,CL_MEM_READ_WRITE,GL_TEXTURE_2D,0,WINDOWS[0].Tex,&ret);
+	cl_mem image=clCreateFromGLTexture(ctx,CL_MEM_READ_WRITE,GL_TEXTURE_2D,0,WINDOW.Tex,&ret);
 	if(ret!=0){
 		printf("Texture creation =>  OpenCL error: %d\n",ret);
     ret=clReleaseMemObject(image);
@@ -91,34 +91,18 @@ void temp(){
 }
 
 int main(int argc,char **argv){
-  if(!Render_init(1,&windowinit))
+  if(!Render_init("test",new(640,480)))
     return 1;
 
   temp();
 
   while(!quit){
     Input_update();
-    Window_update(&WINDOWS[0],&game);
-
-    int closed=1;
-    for(int i=0;i<GET_DIM(WINDOWS);i++)
-      if(WINDOWS[i].state&0b000001)
-        closed=0;
-    if(closed)
-      quit=1;
+    Render_update(&game);
   }
 
   Render_destroy();
   return 0;
-}
-
-int windowinit(){
-  WINDOWS[0]=Window_init("test",new(640,480));
-  if(WINDOWS[0].window==NULL){
-    Render_destroy();
-    return 0;
-  }
-  return 1;
 }
 
 void game(float fps){
