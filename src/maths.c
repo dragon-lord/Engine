@@ -367,3 +367,56 @@ struct Vec4 Vec4_divv(struct Vec4 a,struct Vec4 b){
 	a.z/=b.z;
 	return a;
 }
+
+struct Mat4 Mat4_projection(float fov,float ratio,float near,float far){
+	float d2r=M_PI/180.0f;
+  float ys=1.0f/tanf(d2r*fov/2.0f);
+  float xs=ys/ratio;
+  float nf=far-near;
+  struct Mat4 r={0};
+  M4(r,0,0)=xs;
+  M4(r,1,1)=ys;
+  M4(r,3,2)=(far+near)/nf;
+  M4(r,2,3)=-1.0f;
+  M4(r,2,2)=2*far*near/nf;
+  return r;
+}
+
+struct Mat4 Mat4_lookat(struct Vec3 pos,struct Vec3 fwd,struct Vec3 up){
+	struct Vec3 zaxis=Vec3_norm(fwd);
+  struct Vec3 xaxis=Vec3_norm(Vec3_cross(Vec3_norm(up),zaxis));
+  struct Vec3 yaxis=Vec3_cross(zaxis,xaxis);
+
+  struct Mat4 trans=Identity;
+  M4(trans,0,3)=-pos.x;
+  M4(trans,1,3)=-pos.y;
+  M4(trans,2,3)=-pos.z;
+  struct Mat4 rot=Identity;
+  M4(rot,0,0)=xaxis.x;
+  M4(rot,0,1)=xaxis.y;
+  M4(rot,0,2)=xaxis.z;
+  M4(rot,1,0)=yaxis.x;
+  M4(rot,1,1)=yaxis.y;
+  M4(rot,1,2)=yaxis.z;
+  M4(rot,2,0)=zaxis.x;
+  M4(rot,2,1)=zaxis.y;
+  M4(rot,2,2)=zaxis.z;
+  return Mat4_mul(rot,trans);
+}
+
+struct Vec4 Mat4_column(struct Mat4 m,int c){
+	return new(M4(m,0,c),M4(m,1,c),M4(m,2,c),M4(m,3,c));
+}
+
+struct Vec4 Mat4_row(struct Mat4 m,int r){
+	return new(M4(m,r,0),M4(m,r,1),M4(m,r,2),M4(m,r,3));
+}
+
+struct Mat4 Mat4_mul(struct Mat4 a,struct Mat4 b){
+	return (struct Mat4){{
+		Vec4_dot(Mat4_row(a,0),Mat4_column(b,0)),Vec4_dot(Mat4_row(a,1),Mat4_column(b,0)),Vec4_dot(Mat4_row(a,2),Mat4_column(b,0)),Vec4_dot(Mat4_row(a,3),Mat4_column(b,0)),
+		Vec4_dot(Mat4_row(a,0),Mat4_column(b,1)),Vec4_dot(Mat4_row(a,1),Mat4_column(b,1)),Vec4_dot(Mat4_row(a,2),Mat4_column(b,1)),Vec4_dot(Mat4_row(a,3),Mat4_column(b,1)),
+		Vec4_dot(Mat4_row(a,0),Mat4_column(b,2)),Vec4_dot(Mat4_row(a,1),Mat4_column(b,2)),Vec4_dot(Mat4_row(a,2),Mat4_column(b,2)),Vec4_dot(Mat4_row(a,3),Mat4_column(b,2)),
+		Vec4_dot(Mat4_row(a,0),Mat4_column(b,3)),Vec4_dot(Mat4_row(a,1),Mat4_column(b,3)),Vec4_dot(Mat4_row(a,2),Mat4_column(b,3)),Vec4_dot(Mat4_row(a,3),Mat4_column(b,3))
+	}};
+}

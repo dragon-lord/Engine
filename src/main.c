@@ -1,115 +1,114 @@
 #include "main.h"
-/*
-#if defined(SDL_VIDEO_DRIVER_WINDOWS)
-#define TEST "WINDOWS"
-#elif defined(SDL_VIDEO_DRIVER_WINRT)
-#define TEST "WINRT"
-#elif defined(SDL_VIDEO_DRIVER_X11)
-#define TEST "X11"
-#elif defined(SDL_VIDEO_DRIVER_DIRECTFB)
-#define TEST "DIRECTFB"
-#elif defined(SDL_VIDEO_DRIVER_COCOA)
-#define TEST "COCOA"
-#elif defined(SDL_VIDEO_DRIVER_UIKIT)
-#define TEST "UIKIT"
-#elif defined(SDL_VIDEO_DRIVER_WAYLAND)
-#define TEST "WAYLAND"
-#elif defined(SDL_VIDEO_DRIVER_MIR)
-#define TEST "MIR"
-#elif defined(SDL_VIDEO_DRIVER_ANDROID)
-#define TEST "ANDROID"
-#elif defined(SDL_VIDEO_DRIVER_VIVANTE)
-#define TEST "VIVANTE"
-#endif//*/
-/*#if defined(SDL_VIDEO_DRIVER_WINDOWS)
-#define DIPLAY_TYPE CL_WGL_HDC_KHR
-#elif defined(SDL_VIDEO_DRIVER_WINRT)
-#define DIPLAY_TYPE "WINRT"
-#elif defined(SDL_VIDEO_DRIVER_X11)
-#define DIPLAY_TYPE CL_GLX_DISPLAY_KHR
-#elif defined(SDL_VIDEO_DRIVER_DIRECTFB)
-#define DIPLAY_TYPE "DIRECTFB"
-#elif defined(SDL_VIDEO_DRIVER_COCOA)
-#define DIPLAY_TYPE "COCOA"
-#elif defined(SDL_VIDEO_DRIVER_UIKIT)
-#define DIPLAY_TYPE "UIKIT"
-#elif defined(SDL_VIDEO_DRIVER_WAYLAND)
-#define DIPLAY_TYPE "WAYLAND"
-#elif defined(SDL_VIDEO_DRIVER_MIR)
-#define DIPLAY_TYPE "MIR"
-#elif defined(SDL_VIDEO_DRIVER_ANDROID)
-#define DIPLAY_TYPE "ANDROID"
-#elif defined(SDL_VIDEO_DRIVER_VIVANTE)
-#define DIPLAY_TYPE "VIVANTE"
-#endif//*/
 
-void temp(){
-  //printf("%s\n",TEST);
-  SDL_SysWMinfo info;
-  SDL_VERSION(&info.version);
-  if(!SDL_GetWindowWMInfo(WINDOW.window,&info)){
-    printf("%s\n",SDL_GetError());
-    return;
-  }
-  cl_platform_id platform_id = NULL;
-  cl_device_id device_id = NULL;
-  cl_uint ret_num_devices;
-  cl_uint ret_num_platforms;
-  cl_int ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
-  ret=clGetDeviceIDs(platform_id,CL_DEVICE_TYPE_DEFAULT,1,&device_id, &ret_num_devices);
-
-  cl_context_properties properties[]={
-    CL_CONTEXT_PLATFORM,(cl_context_properties)platform_id,
-  	CL_GL_CONTEXT_KHR,(cl_context_properties)WINDOW.context,
-  	CL_GLX_DISPLAY_KHR,(cl_context_properties)WINDOW.window,
-  	0
-	};
-  cl_context ctx=clCreateContext(properties,1,&device_id,NULL,NULL,&ret);
-  if(ret!=0){
-	 printf("Context creation => OpenCL error: %d\n",ret);
-   ret=clReleaseContext(ctx);//*/
-   return;
-  }
-
-  // Create a command queue
-  cl_command_queue queue=clCreateCommandQueue(ctx,device_id,0,&ret);
-
-  //Create Image
-	cl_mem image=clCreateFromGLTexture(ctx,CL_MEM_READ_WRITE,GL_TEXTURE_2D,0,WINDOW.Tex,&ret);
-	if(ret!=0){
-		printf("Texture creation =>  OpenCL error: %d\n",ret);
-    ret=clReleaseMemObject(image);
-    ret=clFlush(queue);
-    ret=clFinish(queue);
-    ret=clReleaseContext(ctx);
-    return;
-  }
-  ret=clReleaseMemObject(image);
-  ret=clFlush(queue);
-  ret=clFinish(queue);
-  ret=clReleaseContext(ctx);
-}
+void(*runningScreen)(float)=&test;
+int quit;
+struct Mesh* dets;
+struct GuiElem *elements;
+struct Mat4 perspMat;
+struct Cam cam;
+GLuint texture;
+int model;
 
 int main(int argc,char **argv){
-  if(!Render_init("test",new(640,480)))
+  if(!Render_init("OpenGL",new(640,480)))
     return 1;
 
-  temp();
+  perspMat=Mat4_projection(70,WINDOW.dim.x/WINDOW.dim.y,0.01,1000);
+  cam=Cam_new(new(0,0,0),new(0,0,1),new(0,1,0));
+  texture=Load_texture("res/bricks.jpg");
+  model=glGetUniformLocation(mainShader,"model");
+
+  // const GLfloat verts[]={
+  //   -.5f,-.5f,3.f,
+  //   -.5f,.5f,3.f,
+  //   .5f,-.5f,3.f,
+  //   .5f,.5f,3.f
+  // };
+  // const GLfloat colors[]={
+  //   1.0f,0.0f,0.0f,
+  //   0.0f,1.0f,0.0f,
+  //   0.0f,0.0f,1.0f,
+  //   1.0f,0.0f,1.0f
+  // };
+  // GLuint elems[6]={0,1,2,3,1,2};
+  ALLOC_ARR(struct Mesh*,dets,1)
+  dets[0]=LoadMesh("res/monkey.obj");//UploadMesh(verts,colors,elems,12,6);
+  elements=Container_new(
+    new(0,0),new(0,0),
+    (struct GuiElem*[]){
+      // Button_new(new(-100,-60),new(200,50),&button,NULL,0),
+      // Button_new(new(-100,10),new(200,50),&button3,NULL,0)
+      Button_new(new(-0.5,-0.45),new(1,0.25),new(0.5,0,0),NULL,&button,NULL,0),
+      Button_new(new(-0.5,0.2),new(1,0.25),new(0,0.5,0),NULL,&button3,NULL,0)
+    },
+    2
+  );
 
   while(!quit){
     Input_update();
-    Render_update(&game);
+    Render_update(runningScreen);
   }
+  Elem_destroy(elements);
+  elements=NULL;
+  UnloadMesh(dets);
+  glDeleteTextures(1,&texture);
 
   Render_destroy();
   return 0;
 }
 
+int esc=0;
+
 void game(float fps){
-  struct Vec2 pnts[3]={
-    new(-1,-1),
-    new(1,-1),
-    new(0,1)
-  };
-  Fill_triangle(pnts,0xFF888888);
+  if(keys[6]&&!esc){
+    button2();
+    esc=1;
+  }else if(!keys[6]&&esc)esc=0;
+  cam=Cam_update(cam,fps);
+  glUseProgram(mainShader);
+  struct Mat4 look=Mat4_lookat(cam.pos,cam.fwd,cam.up);
+  struct Mat4 mat=Mat4_mul(perspMat,look);
+  // printf("[%f,%f,%f,%f/%f,%f,%f,%f/%f,%f,%f,%f/%f,%f,%f,%f]\n",
+  // mat.f[0],mat.f[1],mat.f[2],mat.f[3],mat.f[4],mat.f[5],mat.f[6],mat.f[7],mat.f[8],mat.f[9],mat.f[10],mat.f[11],mat.f[12],mat.f[13],mat.f[14],mat.f[15]);
+  glUniformMatrix4fv(model,1,GL_FALSE,&mat.f[0]);
+  Bind_texture(0,texture);
+  // glEnable(GL_DEPTH_TEST);
+  DrawFull(dets);
+  // elements->draw(elements);
+  // elements->update(*elements);
+}
+
+void test(float fps){
+  if(keys[6]&&!esc){
+    button3();
+    esc=1;
+  }else if(!keys[6]&&esc)esc=0;
+  glUseProgram(mainShader);
+  struct Mat4 look=Mat4_lookat(cam.pos,cam.fwd,cam.up);
+  struct Mat4 mat=Mat4_mul(perspMat,look);
+  glUniformMatrix4fv(model,1,GL_FALSE,&mat.f[0]);
+  Bind_texture(0,texture);
+  // glEnable(GL_DEPTH_TEST);
+  DrawFull(dets);
+  // glDisable(GL_DEPTH_TEST);
+  glClear(GL_DEPTH_BUFFER_BIT);
+  elements->draw(*elements);
+  elements->update(*elements);
+}
+
+void button(){
+  quit=1;
+}
+
+void button2(){
+  SDL_SetRelativeMouseMode(SDL_FALSE);
+  SDL_WarpMouseInWindow(WINDOW.window,WINDOW.dim.x/2,WINDOW.dim.y/2);
+  runningScreen=&test;
+}
+
+void button3(){
+  SDL_SetRelativeMouseMode(SDL_TRUE);
+  // SDL_ShowCursor(SDL_DISABLE);
+  // SDL_ShowCursor(SDL_ENABLE);
+  runningScreen=&game;
 }

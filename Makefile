@@ -1,10 +1,10 @@
 TARGET=main
-LIBS=-lm -lSDL2 -lSDL2_image -lGL -lGLEW -lOpenCL
+LIBS=-lm -lSDL2 -lSDL2_ttf -lSDL2_image -lGL -lGLEW
 CC=gcc
 CFLAGS=-Iinclude -g -Wall
 
 SDIR=src
-ODIR=src/obj
+ODIR=build/obj
 IDIR=include
 
 .PHONY: default all run clean

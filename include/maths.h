@@ -1,5 +1,5 @@
-#ifndef MATH_H
-#define MATH_H
+#ifndef MATHS_H
+#define MATHS_H
 
 #include <math.h>
 
@@ -7,10 +7,60 @@
 #define VA_NUM_ARGS_IMPL(_1,_2,_3,_4,_5,N,...) N
 #define VA_NUM_ARGS(...) VA_NUM_ARGS_IMPL(__VA_ARGS__,5,4,3,2,1)
 
-#define GET_DIM(ARR)(*((size_t *)ARR-1))
-#define GET_WIDTH(ARR)(*((size_t *)ARR-2))
-#define GET_HEIGHT(ARR)(*((size_t *)ARR-3))
-#define GET_DEPTH(ARR)(*((size_t *)ARR-4))
+#define GET_WIDTH(ARR)(*((size_t *)ARR-1))
+#define GET_HEIGHT(ARR)(*((size_t *)ARR-2))
+#define GET_DEPTH(ARR)(*((size_t *)ARR-3))
+#define GET_VALUE(ARR,IND)(*((size_t *)ARR-IND))
+
+#define ALLOC_ARR1(TYPE,VAR,SIZE)\
+if(1){\
+  size_t *raw=malloc(sizeof(size_t)+SIZE*sizeof(TYPE));\
+  raw[0]=SIZE;\
+  VAR=(TYPE)&(raw[1]);\
+}
+#define ALLOC_ARR2(TYPE,VAR,X,Y)\
+if(1){\
+  size_t *raw=malloc(2*sizeof(size_t)+X*Y*sizeof(TYPE));\
+  raw[0]=X;\
+  raw[1]=Y;\
+  VAR=(TYPE)&(raw[2]);\
+}
+#define ALLOC_ARR3(TYPE,VAR,X,Y,Z)\
+if(1){\
+  size_t *raw=malloc(3*sizeof(size_t)+X*Y*Z*sizeof(TYPE));\
+  raw[0]=X;\
+  raw[1]=Y;\
+  raw[2]=Z;\
+  VAR=(TYPE)&(raw[3]);\
+}
+
+#define DECLARE_ARR(TYPE,VAR,...)TYPE VAR;ALLOC_ARR(TYPE,VAR,__VA_ARGS__)
+#define ALLOC_ARR(TYPE,VAR,...) VA_NUM_ARGS_IMPL(__VA_ARGS__,5,4,ALLOC_ARR3,ALLOC_ARR2,ALLOC_ARR1)(TYPE,VAR,__VA_ARGS__)
+
+#define DECLARE_LIST(TYPE,VAR,SIZE)TYPE VAR;ALLOC_LIST(TYPE,VAR,SIZE)
+#define ALLOC_LIST(TYPE,VAR,SIZE)\
+if(1){\
+  size_t *raw=malloc(2*sizeof(size_t)+SIZE*sizeof(TYPE));\
+  raw[0]=SIZE;\
+  raw[1]=0;\
+  VAR=(TYPE)&(raw[2]);\
+}
+
+#define LIST_POPON(TYPE,LIST,VAL)\
+if(1){\
+  int size=GET_WIDTH(LIST);\
+  int actual=GET_HEIGHT(LIST);\
+  if(size>=actual){\
+    size_t *raw=(size_t*)LIST-2;\
+    raw=realloc(raw,2*sizeof(size_t)+actual*2*sizeof(*LIST));\
+    raw[0]=actual*2;\
+    raw[1]=size;\
+    LIST=(TYPE)&(raw[2]);\
+  }\
+  LIST[size]=VAL;\
+  GET_WIDTH(LIST)=size+1;\
+}
+#define LIST_POPOFF(LIST)GET_WIDTH(LIST)-=1;
 
 #define HEAP_PARENT(N)(((N)-1)/2)
 #define HEAP_CHILD1(N)(2*(N)+1)
@@ -18,7 +68,7 @@
 
 #define HEAP_POPON(HEAP,VAL,CONDITION)\
 if(1){\
-  int pos=GET_DIM(HEAP);\
+  int pos=GET_WIDTH(HEAP);\
   HEAP[pos]=VAL;\
   SET_DIM(HEAP,pos+1);\
   while(1){\
@@ -31,17 +81,17 @@ if(1){\
   }\
 }
 #define HEAP_POPOFF(HEAP,CONDITION)\
-if(GET_DIM(HEAP)>0){\
-  int pos=GET_DIM(HEAP)-1;\
+if(GET_WIDTH(HEAP)>0){\
+  int pos=GET_WIDTH(HEAP)-1;\
   HEAP[0]=HEAP[pos];\
   SET_DIM(HEAP,pos);\
   pos=0;\
-  while(GET_DIM(HEAP)>pos){\
+  while(GET_WIDTH(HEAP)>pos){\
     int child1=HEAP_CHILD1(pos);\
     int child2=HEAP_CHILD2(pos);\
-    if(child1<GET_DIM(HEAP) && (CONDITION(HEAP[child1],HEAP[pos]) || CONDITION(HEAP[child2],HEAP[pos]))){\
+    if(child1<GET_WIDTH(HEAP) && (CONDITION(HEAP[child1],HEAP[pos]) || CONDITION(HEAP[child2],HEAP[pos]))){\
       int temp=HEAP[pos];\
-      if(child2>=GET_DIM(HEAP) || CONDITION(HEAP[child1],HEAP[child2])){\
+      if(child2>=GET_WIDTH(HEAP) || CONDITION(HEAP[child1],HEAP[child2])){\
         HEAP[pos]=HEAP[child1];\
         HEAP[child1]=temp;\
         pos=child1;\
@@ -53,6 +103,24 @@ if(GET_DIM(HEAP)>0){\
     }else break;\
   }\
 }
+
+#define FOREACH(ITEM,ARR)\
+for(int i=0,xyf=1;i<GET_WIDTH(ARR);xyf=!xyf,i++)\
+for(ITEM=ARR[i];xyf;xyf=!xyf)
+#define FOREACH1(INDEX,ITEM,ARR)\
+for(int INDEX=0,xyf=1;INDEX<GET_WIDTH(ARR);xyf=!xyf,INDEX++)\
+for(ITEM=ARR[i];xyf;xyf=!xyf)
+#define FOREACH2(A,B,ITEM,ARR)\
+for(int A=0;A<GET_WIDTH(ARR);A++)\
+for(int B=0,xyf=1;B<GET_HEIGHT(ARR);xyf=!xyf,B++)\
+for(ITEM=ARR[i];xyf;xyf=!xyf)
+#define FOREACH3(A,B,C,ITEM,ARR)\
+for(int A=0;A<GET_WIDTH(ARR);A++)\
+for(int B=0;B<GET_HEIGHT(ARR);B++)\
+for(int C=0,xyf=1;C<GET_HEIGHT(ARR);xyf=!xyf,C++)\
+for(ITEM=ARR[i];xyf;xyf=!xyf)
+
+#define foreach(...)VA_NUM_ARGS_IMPL(__VA_ARGS__,FOREACH3,FOREACH2,FOREACH1,FOREACH)(__VA_ARGS__)
 
 #define VEC2_COMPONENT(V)V.x,V.y
 #define VEC3_COMPONENT(V)V.x,V.y,V.z
@@ -76,6 +144,14 @@ if(GET_DIM(HEAP)>0){\
 
 #define new(...) VA_NUM_ARGS_IMPL(__VA_ARGS__,5,VEC4_NEW,VEC3_NEW,VEC2_NEW)(__VA_ARGS__)
 
+#define M4(m,i,j) m.f[i+4*j]
+#define Identity (struct Mat4){{\
+  1,0,0,0,\
+  0,1,0,0,\
+  0,0,1,0,\
+  0,0,0,1\
+}}
+
 struct Vec2{
 	float x;
 	float y;
@@ -92,6 +168,10 @@ struct Vec4{
 	float x;
 	float y;
 	float z;
+};
+
+struct Mat4{
+  float f[4*4];
 };
 
 struct Vec2 Vec2_new(float x,float y);
@@ -304,4 +384,12 @@ struct Vec4 Vec4_divv(struct Vec4 a,struct Vec4 b);
   )\
 )(X,B)
 
-#endif //MATH_H
+struct Mat4 Mat4_projection(float fov,float ratio,float near,float far);
+struct Mat4 Mat4_lookat(struct Vec3 pos,struct Vec3 fwd,struct Vec3 up);
+
+struct Vec4 Mat4_column(struct Mat4 m,int c);
+struct Vec4 Mat4_row(struct Mat4 m,int r);
+
+struct Mat4 Mat4_mul(struct Mat4 a,struct Mat4 b);
+
+#endif //MATHS_H
