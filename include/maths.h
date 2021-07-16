@@ -14,20 +14,20 @@
 
 #define ALLOC_ARR1(TYPE,VAR,SIZE)\
 if(1){\
-  size_t *raw=malloc(sizeof(size_t)+SIZE*sizeof(TYPE));\
+  size_t *raw=malloc(sizeof(size_t)+SIZE*sizeof(*VAR));\
   raw[0]=SIZE;\
   VAR=(TYPE)&(raw[1]);\
 }
 #define ALLOC_ARR2(TYPE,VAR,X,Y)\
 if(1){\
-  size_t *raw=malloc(2*sizeof(size_t)+X*Y*sizeof(TYPE));\
+  size_t *raw=malloc(2*sizeof(size_t)+X*Y*sizeof(*VAR));\
   raw[0]=X;\
   raw[1]=Y;\
   VAR=(TYPE)&(raw[2]);\
 }
 #define ALLOC_ARR3(TYPE,VAR,X,Y,Z)\
 if(1){\
-  size_t *raw=malloc(3*sizeof(size_t)+X*Y*Z*sizeof(TYPE));\
+  size_t *raw=malloc(3*sizeof(size_t)+X*Y*Z*sizeof(*VAR));\
   raw[0]=X;\
   raw[1]=Y;\
   raw[2]=Z;\
@@ -40,7 +40,7 @@ if(1){\
 #define DECLARE_LIST(TYPE,VAR,SIZE)TYPE VAR;ALLOC_LIST(TYPE,VAR,SIZE)
 #define ALLOC_LIST(TYPE,VAR,SIZE)\
 if(1){\
-  size_t *raw=malloc(2*sizeof(size_t)+SIZE*sizeof(TYPE));\
+  size_t *raw=malloc(2*sizeof(size_t)+SIZE*sizeof(*VAR));\
   raw[0]=SIZE;\
   raw[1]=0;\
   VAR=(TYPE)&(raw[2]);\
